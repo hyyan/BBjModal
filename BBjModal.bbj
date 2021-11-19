@@ -1,0 +1,215 @@
+use java.util.HashMap
+rem /**
+rem  * BBjModal
+rem  *
+rem  * Create a modal dialog based on bbj-dialog component
+rem  * 
+rem  * @see https://basishub.github.io/basis-next/#/dwc/bbj-dialog
+rem  * @author Hyyan Abo Fakher
+rem  */
+class public BBjModal
+    rem /**
+    rem  * A constant to use for the modal opened event
+    rem  */
+    field public static BBjNumber ON_OPENED = 2
+    rem /**
+    rem  * A constant to use for the modal closed event
+    rem  */
+    field public static BBjNumber ON_CLOSED = 4
+    rem /**
+    rem  * The dialog's header child window
+    rem  */
+    field public BBjChildWindow Header!
+    rem /**
+    rem  * The dialog's content child window
+    rem  */
+    field public BBjChildWindow Content!
+    rem /**
+    rem  * The dialog's footer child window
+    rem  */
+    field public BBjChildWindow Footer!
+    field protected HashMap Attributes! = new HashMap()
+    field protected BBjString Id! = java.util.UUID.randomUUID().toString()
+    field protected BBjChildWindow Canvas!
+    field protected BBjHtmlView HTMLView!
+    rem /**
+    rem * Construct a new BBjModal
+    rem *
+    rem * @param wnd! the window instance
+    rem */
+    method public BBjModal(BBjWindow wnd!)
+        #Canvas! = wnd!.addChildWindow(wnd!.getAvailableControlID(),0,0,0,0,"",$00000800$,BBjAPI().getSysGui().getAvailableContext())
+        rem setup a hidden HTMLView to handle events and execute scripts
+        #HTMLView! = #Canvas!.addHtmlView(101,0,0,0,0,"",$0000$)
+        #HTMLView!.setOpaque(0)
+        #HTMLView!.setNoEdge(1)
+        #HTMLView!.setTabTraversable(0)
+        #HTMLView!.setFocusable(0)
+        #HTMLView!.setAttribute("data-htmlview-for-modal", #Id!)
+        #HTMLView!.setCallback(BBjAPI.ON_NATIVE_JAVASCRIPT,#this!,"handleModalEvent")
+    methodend
+    rem /**
+    rem * Set the dialog header
+    rem *
+    rem * @param header! the header instance
+    rem */
+    method public void setHeader(BBjChildWindow header!)
+        #Header! = header!
+        #Header!.setAttribute("data-modal-header", #getId())
+    methodend
+    rem /**
+    rem * Set the dialog content
+    rem *
+    rem * @param content! the content instance
+    rem */
+    method public void setContent(BBjChildWindow content!)
+        #Content! = content!
+        #Content!.setAttribute("data-modal-content", #getId())
+    methodend
+    rem /**
+    rem  * Set the footer content
+    rem *
+    rem * @param footer! the footer instance
+    rem */
+    method public void setFooter(BBjChildWindow footer!)
+        #Footer! = footer!
+        #Footer!.setAttribute("data-modal-footer", #getId())
+    methodend
+    rem /**
+    rem * Set a dialog attribute
+    rem *
+    rem * @see https://basishub.github.io/basis-next/#/dwc/bbj-dialog
+    rem *
+    rem * @param key! The attribute name
+    rem * @param value! The attribute value
+    rem */
+    method public void setAttribute(BBjString key! , BBjString value!)
+        #getAttributes().put(key! , value!)
+    methodend
+    rem /**
+    rem  * Remove a dialog attribute
+    rem  *
+    rem  * @see https://basishub.github.io/basis-next/#/dwc/bbj-dialog
+    rem  *
+    rem * @param key! The attribute name
+    rem */
+    method public void removeAttribute(BBjString key!)
+        #getAttributes().remove(key!)
+    methodend
+    rem /**
+    rem  * Show the dialog
+    rem */
+    method public void show()
+        #getHeader().setVisible(BBjAPI.TRUE , err=*next)
+        #getContent().setVisible(BBjAPI.TRUE,err=*next)
+        #getFooter().setVisible(BBjAPI.TRUE, err=*next)
+        script! = "" +
+: "(() => {" +
+: "const loadimage = document.getElementById('BBjLoadImage');" +
+: "if (loadimage) {try{loadimage.remove();}catch(err){}}" +
+: " let dialog = document.querySelector('[data-dialog-for-modal=""" + #Id! + """]');" +
+: " if(dialog && dialog.opened){" +
+: "     dialog.opened = true;" +
+: "     return;" +
+: " }" +
+: " dialog = document.createElement('bbj-dialog');" +
+: "dialog.addEventListener('bbj-closed', ev => {"+
+: "     if(!ev.target.isSameNode(dialog)) return;" +
+: "     dialog.remove();" +
+: "     const container = document.querySelector('[data-htmlview-for-modal=""" + #Id! + """]');" +
+: "     container.basisDispatchCustomEvent(container, {type:'bbj-closed',detail: ''});" +
+: "});"+
+: "dialog.addEventListener('bbj-opened', ev => {"+
+: "     if(!ev.target.isSameNode(dialog)) return;" +
+: "     const container = document.querySelector('[data-htmlview-for-modal=""" + #Id! + """]');" +
+: "     container.basisDispatchCustomEvent(container, {type:'bbj-opened',detail: ''});" +
+: "});"
+        it! = #getAttributes().entrySet().iterator()
+        while it!.hasNext()
+            next! = it!.next()
+            script! = script!  + "dialog.setAttribute('" + str(next!.getKey()) + "','" + str(next!.getValue()) +"');"
+        wend
+
+        script! = script! + "const headerChildWindow = document.querySelector('[data-modal-header=""" + #Id! + """]');" +
+: " const contentChildWindow = document.querySelector('[data-modal-content=""" + #Id! + """]');" +
+: " const footerChildWindow = document.querySelector('[data-modal-footer=""" + #Id! + """]');" +
+: " dialog.setAttribute('data-dialog-for-modal','" + #Id! + "');" +
+: " if(headerChildWindow){" +
+: "     const header = document.createElement('header');" +
+: "     header.appendChild(headerChildWindow);" +
+: "     dialog.appendChild(header);" +
+: " }" +
+: " if(contentChildWindow){" +
+: "     const section = document.createElement('section');" +
+: "     section.appendChild(contentChildWindow);" +
+: "     dialog.appendChild(section);" +
+: " }" +
+: " if(footerChildWindow){" +
+: "     const footer = document.createElement('footer');" +
+: "     footer.appendChild(footerChildWindow);" +
+: "     dialog.appendChild(footer);" +
+: " }" +
+: " document.body.appendChild(dialog);" +
+: " dialog.opened = true;" +
+: "})()"
+        #HTMLView!.executeScript(script!)
+    methodend
+    rem /**
+    rem  * Hide the dialog
+    rem */
+    method public void hide()
+        script! = "" +
+: "(() => {" +
+: " const dialog = document.querySelector('[data-dialog-for-modal=""" + #Id! + """]');" +
+: " if(dialog){" +
+: "     dialog.opened = false;" +
+: " }" +
+: "})()"
+        #HTMLView!.executeScript(script!)
+    methodend
+    rem /**
+    rem  * Set a dialog event listener
+    rem  *
+    rem  * @see BBjModal.ON_OPENED
+    rem  * @see BBjModal.ON_CLOSED
+    rem  *
+    rem  * @param event! The modal event
+    rem  * @param callback! The event callback
+    rem  */
+    method public void setCallback(int event!, String callback!)
+        BBjAPI().setCustomEventCallback(str(#this!)+str(event!),callback!)
+    methodend
+    rem /**
+    rem  * Set a dialog event listener
+    rem  *
+    rem  * @see BBjModal.ON_OPENED
+    rem  * @see BBjModal.ON_CLOSED
+    rem  *
+    rem  * @param event! The modal event
+    rem  * @param callback! A class instance
+    rem  * @param callback! The event callback
+    rem  */
+    method public void setCallback(int event!, CustomObject instance!, String method!)
+        BBjAPI().setCustomEventCallback(str(#this!)+str(event!),instance!,method!)
+    methodend
+    rem /**
+    rem  * Handle the modal client events.
+    rem  *
+    rem  * @param ev! The Javascript event
+    rem  * @ignore
+    rem  */
+    method public void handleModalEvent(BBjNativeJavaScriptEvent ev!)
+        map! = ev!.getEventMap()
+        type$ = str(map!.get("type"))
+        detail$ = str(map!.get("detail"))
+        switch type$
+            case "bbj-opened"
+                BBjAPI().postPriorityCustomEvent(str(#this!)+str(BBjModal.ON_OPENED),null())
+                break
+            case "bbj-closed"
+                BBjAPI().postPriorityCustomEvent(str(#this!)+str(BBjModal.ON_CLOSED),null())
+                break
+        swend
+    methodend
+
+classend

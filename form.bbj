@@ -1,0 +1,65 @@
+use ::BBjModal.bbj::BBjModal
+
+wnd! = BBjAPI().openSysGui("X0").addWindow(10,10,200,200,"Signin",$00000010$)
+wnd!.setCallback(BBjAPI.ON_CLOSE,"onClose")
+
+header!= wnd!.addChildWindow(200,0,0,0,0,"",$00108810$,BBjAPI().getSysGui().getAvailableContext())
+header!.addStaticText(201,0,0,0,0,"<html>" +
+: "<div style='text-align: center; vertical-align: middle;'>" +
+: " <bbj-icon name='lock' style='font-size:1.3em; margin-top: -4px'></bbj-icon> &&nbsp;Sign in"+
+: "</div>"+
+: "</html>")
+
+content!= wnd!.addChildWindow(202,0,0,0,0,"",$00108810$,BBjAPI().getSysGui().getAvailableContext())
+username! = content!.addEditBox(203,0,0,0,0,"Hyyan")
+username!.setStyle("width","100%")
+username!.setAttribute("placeholder", "Your username or E-mail address")
+username!.setAttribute("label", "Username")
+
+password! = content!.addEditBox(204,0,0,0,0,"hyyan",$0400$)
+password!.setStyle("width","100%")
+password!.setAttribute("placeholder", "Password")
+password!.setAttribute("label", "Password")
+
+footer!= wnd!.addChildWindow(205,0,0,0,0,"",$00108810$,BBjAPI().getSysGui().getAvailableContext())
+rememberMe! = footer!.addCheckBox(206,0,0,0,0,"Remember me",$0004$)
+rememberMe!.setAttribute("expanse","m")
+signin! = footer!.addButton(207,0,0,0,0,"Accept")
+signin!.setAttribute("theme","primary")
+signin!.setAttribute("expanse","m")
+signin!.setCallback(signin!.ON_BUTTON_PUSH , "onSignin")
+
+modal! = new BBjModal(wnd!)
+modal!.setAttribute("theme","primary")
+modal!.setAttribute("autofocus","true")
+modal!.setAttribute("moveable","false")
+modal!.setAttribute("max-width","400px")
+modal!.setAttribute("cancel-on-esc-key","false")
+modal!.setAttribute("cancel-on-outside-click","false")
+modal!.setHeader(header!)
+modal!.setContent(content!)
+modal!.setFooter(footer!)
+modal!.show()
+
+rem Child windows style 
+rem  ===========================
+content!.setStyle("display","flex")
+content!.setStyle("flex-direction","column")
+content!.setStyle("gap","1rem")
+content!.setStyle("padding","var(--bbj-space-s)")
+
+footer!.setStyle("display","flex")
+footer!.setStyle("justify-content","flex-end")
+footer!.setStyle("gap","1rem")
+footer!.setStyle("padding","var(--bbj-space-s)")
+
+process_events
+
+onClose:
+    release 
+return
+
+onSignin:
+    modal!.hide()
+    x = msgbox("Welcome " + username!.getText() ,0, "Signin")
+return

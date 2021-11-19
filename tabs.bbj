@@ -1,0 +1,66 @@
+rem ' BBjTabCtrl
+use ::BBjModal.bbj::BBjModal
+
+sysgui = unt
+open (sysgui)"X0"
+sysgui! = bbjapi().getSysGui()
+window! = sysgui!.addWindow(100,100,400,300,"BBjTabCtrl",$00090013$)
+window!.setCallback(window!.ON_CLOSE,"eoj")
+
+modalContent!= window!.addChildWindow(200,0,0,400,300,"",$00100810$,BBjAPI().getSysGui().getAvailableContext())
+tabctrl! = modalContent!.addTabCtrl(101,0,0,400,200)
+tabctrl!.setStyle("width","100%")
+tabctrl!.setStyle("height","266px")
+tabctrl!.setCallback(tabctrl!.ON_TAB_SELECT,"select")
+tabctrl!.setCallback(tabctrl!.ON_TAB_CLOSE,"close")
+for i = 0 to 9
+  child! = modalContent!.addChildWindow(200+I,50,50,200,140,"",$00000810$,200+I,$$)
+  text$ = "Child Window " + str(I)
+  text! = child!.addStaticText(300+I,i*10,i*10,150,25,text$)
+  title$ = "Tab " + str(I)
+  tabctrl!.addTab(title$,child!)
+next i
+closeable! = modalContent!.addCheckBox(102,25,250,150,25,"set&Closeable",$$)
+closeable!.setCallback(closeable!.ON_CHECK_ON,"setCloseable1")
+closeable!.setCallback(closeable!.ON_CHECK_OFF,"setCloseable0")
+closeableAt! = modalContent!.addCheckBox(103,200,250,150,25,"se&tCloseableAt",$$)
+closeableAt!.setCallback(closeable!.ON_CHECK_ON,"setCloseableAt1")
+closeableAt!.setCallback(closeable!.ON_CHECK_OFF,"setCloseableAt0")
+
+modal! = new BBjModal(window!)
+modal!.setContent(modalContent!)
+modal!.setAttribute("cancel-on-outside-click","false")
+modal!.show()
+
+process_events
+eoj:
+  release
+select:
+  event! = sysgui!.getLastEvent()
+  index = event!.getIndex()
+  title$ = event!.getTitle()
+  print "Selected index",index,": ",title$
+  closeableAt!.setSelected(tabctrl!.isCloseableAt(index))
+  closeableAt!.setText("setClosebleAt "+str(index))
+return
+setCloseable0:
+  tabctrl!.setCloseable(0)
+return
+setCloseable1:
+  tabctrl!.setCloseable(1)
+return
+setCloseableAt0:
+  tabctrl!.setCloseableAt(tabctrl!.getSelectedIndex(),0)
+return
+setCloseableAt1:
+  tabctrl!.setCloseableAt(tabctrl!.getSelectedIndex(),1)
+return
+close:
+  event! = sysgui!.getLastEvent()
+  index = event!.getIndex()
+  title$ = event!.getTitle()
+  query$ = "Close tab #"+str(index)+" ("""+title$+""")?"
+  if msgbox(query$,4+32+256,"ON_TAB_CLOSE")=6 then
+     tabctrl!.removeTab(index)
+  endif
+return
